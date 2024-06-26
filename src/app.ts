@@ -8,7 +8,8 @@ import helmet from 'helmet';
 import { envKeys } from './util/config';
 import compression from 'compression';
 import DBClient from './util/DBClient';
-import costRoutes from './routes';
+import costRoutes from './routes/costRoutes';
+import sharesRoutes from "./routes/sharesRoutes";
 
 // database connection to mongodb thru mongoose
 const {
@@ -58,6 +59,7 @@ app.get('/', async (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/cost", costRoutes)
+app.use("/api/v1/shares", sharesRoutes)
 
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
     res.render('notfound', { title: 'Resource not found', message: '😅 resource not found' })
