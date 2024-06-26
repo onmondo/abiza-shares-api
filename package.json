@@ -1,6 +1,6 @@
 {
   "name": "abiza-shares-api",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "API to manage cost and capital expenditures",
   "main": "index.js",
   "scripts": {
