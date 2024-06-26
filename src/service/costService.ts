@@ -139,5 +139,32 @@ export class CostService {
                 message: err
             }
         }
-    }    
+    }
+
+    async DeleteCapitalExpenditure(req: Request): Promise<{ statusCode: number; message: any; }> {
+        try {
+            const expenditureId = req.params.id;
+            const queryID = plainToClass(QueryByIDEntry, { id: expenditureId })
+            const error = await AppValidationError(queryID)
+            if (error) {
+                return {
+                    statusCode: 400,
+                    message: error
+                }
+            }
+    
+            const data = await this.repository.deleteCost(queryID.id)
+
+            return {
+                statusCode: 200,
+                message: "success"
+            }
+            
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: err
+            }
+        }
+    }     
 }
