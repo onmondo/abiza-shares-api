@@ -56,7 +56,17 @@ export class CostRepository {
                         ...queryDate,
                         updatedAt: new Date()
                     }
-                }
+                },
+                { upsert: true }
             )
+    }
+
+    async deleteCost(id: string) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+        dbConnection
+            .db("abiza-mongodb")
+            .collection("expenditures")
+            .deleteOne({ "_id": new ObjectId(id) })
     }
 }
