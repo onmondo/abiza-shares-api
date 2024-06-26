@@ -43,4 +43,13 @@ costRoutes.put("/:id", async (req: Request, res: Response, next: NextFunction) =
         })
 })
 
+costRoutes.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message } = await service.DeleteCapitalExpenditure(req)
+    res
+        .status(statusCode)
+        .json({
+            message
+        })
+})
+
 export default costRoutes
