@@ -1,6 +1,9 @@
 import { ObjectId } from "mongodb";
 import { ShareHolder } from "../models/ShareHolder";
+import { CashAdvance } from "../models/CashAdvance";
 import DBClient from "../util/DBClient";
+import { CashAdvancePayment } from "../models/CashAdvancePayment";
+import { CashAdvancePaymentEntry } from "../dto/CashAdvancePaymentEntry";
 
 export class SharesRepository {
     async createShareHolder(shareHolder: ShareHolder) {
@@ -65,9 +68,182 @@ export class SharesRepository {
         const dbClient = DBClient.getInstance()
         const dbConnection = await dbClient.getConnection()
         
+        const result: unknown = await dbConnection
+            .db("abiza-mongodb")
+            .collection("shareholders")
+            .findOne({ "_id": new ObjectId(id) })
+
+        const shareHolder = result as ShareHolder
+        if (shareHolder.cashAdvances && shareHolder.cashAdvances.length > 0) {
+            throw Error("Shareholder has existing cash advance and therefore you cannot delete the shareholder.")
+        }
+
+        await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .deleteMany({ id })
+
         dbConnection
             .db("abiza-mongodb")
             .collection("shareholders")
             .deleteOne({ "_id": new ObjectId(id) })
     }
+
+    async addCashAdvance(id: string, cashAdvance: CashAdvance) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+        
+        const insertResult = await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .insertOne({
+                ...cashAdvance,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+
+        dbConnection
+            .db("abiza-mongodb")
+            .collection<ShareHolder>("shareholders")
+            .updateOne(
+                { "_id": new ObjectId(id) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date()
+                    },
+                    $push: {
+                        cashAdvances: insertResult.insertedId,
+                    }
+                }
+            )
+    }  
+    
+    async findAllShareHoldersCashAdvances(id: string) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+        const shareHolder: unknown = await dbConnection
+            .db("abiza-mongodb")
+            .collection("shareholders")
+            .findOne({ "_id": new ObjectId(id) })
+
+        const { cashAdvances } = shareHolder as ShareHolder
+        const result: unknown = dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .find({"_id": { $in: cashAdvances}})
+            .toArray()
+
+        return result
+    }
+
+    async findShareHoldersCashAdvanceById(id: string) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+
+        const result: unknown = dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .findOne({"_id": new ObjectId(id)})
+            
+        return result as CashAdvance
+    }
+
+    async deleteShareHoldersCashAdvanceById(cashAdvanceId: string) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+        
+        // need to upgrade this into a transaction type db operation
+        const cashAdvance: unknown = await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .findOne({"_id": new ObjectId(cashAdvanceId)})
+        
+        const { id, payments } = cashAdvance as CashAdvance
+        
+        if (payments && payments.length > 0) {
+            throw Error("The cash advance already has existing payments and cannot be revoked.")
+        }
+
+        await dbConnection
+            .db("abiza-mongodb")
+            .collection<ShareHolder>("shareholders")
+            .updateOne(
+                { "_id": new ObjectId(id) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date()
+                    },
+                    $pull: {
+                        cashAdvances: new ObjectId(cashAdvanceId),
+                    }
+                }
+            )
+
+        await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .updateOne(
+                { "_id": new ObjectId(cashAdvanceId) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date(),
+                        archived: true
+                    }
+                }
+            )
+    }
+
+    async createPayment(id: string, payment: CashAdvancePayment) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+
+        const result = await dbConnection
+            .db("abiza-mongodb")
+            .collection<CashAdvance>("cashadvances")
+            .updateOne(
+                { "_id": new ObjectId(id) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date()
+                    },
+                    $push: {
+                        payments: payment
+                    }
+                }
+            )
+    }
+
+    async findAllPaymentsFromCashAdvance(id: string) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+
+        const result: unknown = await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .findOne({"_id": new ObjectId(id)})
+        
+        const cashAdvance = result as CashAdvance
+        
+        return cashAdvance.payments
+    }
+
+    // async deletePaymentsFromCashAdvance(id: string, payment: CashAdvancePayment) {
+    //     const dbClient = DBClient.getInstance()
+    //     const dbConnection = await dbClient.getConnection()
+
+    //     const result = await dbConnection
+    //         .db("abiza-mongodb")
+    //         .collection<CashAdvance>("cashadvances")
+    //         .updateOne(
+    //             { "_id": new ObjectId(id) }, 
+    //             { 
+    //                 $set: {
+    //                     updatedAt: new Date()
+    //                 },
+    //                 $push: {
+    //                     payments: payment
+    //                 }
+    //             }
+    //         )
+    // }
 }
