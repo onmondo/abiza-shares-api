@@ -7,6 +7,7 @@ import { autoInjectable } from "tsyringe";
 import { QueryByIDEntry } from "../dto/QueryByIDEntry";
 import { UpdateShareHolderEntry } from "../dto/UpdateShareHolder";
 import { ShareHolder } from "../models/ShareHolder";
+import { ShareHolderCashAdvanceEntry } from "../dto/ShareHolderCashAdvanceEntry";
 
 @autoInjectable()
 export class SharesService {
@@ -128,6 +129,33 @@ export class SharesService {
             }
     
             await this.repository.deleteShareHolder(queryID.id)
+    
+            return {
+                statusCode: 200,
+                message: "success"
+            }
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: err
+            }
+        }
+    }
+
+    async AddCashAdvance(req: Request) {
+        try {
+            const shareHolderId = req.params.id;
+            const newCashAdvance = plainToClass(ShareHolderCashAdvanceEntry, {...req.body, id: shareHolderId})
+            const error = await AppValidationError(newCashAdvance)
+    
+            if (error) {
+                return {
+                    statusCode: 400,
+                    message: error
+                }
+            }
+    
+            await this.repository.addCashAdvance(shareHolderId, newCashAdvance)
     
             return {
                 statusCode: 200,

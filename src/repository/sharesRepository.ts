@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { ShareHolder } from "../models/ShareHolder";
+import { CashAdvance } from "../models/CashAdvance";
 import DBClient from "../util/DBClient";
 
 export class SharesRepository {
@@ -70,4 +71,33 @@ export class SharesRepository {
             .collection("shareholders")
             .deleteOne({ "_id": new ObjectId(id) })
     }
+
+    async addCashAdvance(id: string, cashAdvance: CashAdvance) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+        
+        const insertResult = await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .insertOne({
+                ...cashAdvance,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+
+        dbConnection
+            .db("abiza-mongodb")
+            .collection<ShareHolder>("shareholders")
+            .updateOne(
+                { "_id": new ObjectId(id) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date()
+                    },
+                    $push: {
+                        cashAdvances: insertResult.insertedId,
+                    }
+                }
+            )
+    }    
 }

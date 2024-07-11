@@ -52,4 +52,13 @@ shareRoutes.delete("/holders/:id", async (req: Request, res: Response, next: Nex
         })
 })
 
+shareRoutes.post("/holders/:id/advance", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message } = await service.AddCashAdvance(req)
+    res
+        .status(statusCode)
+        .json({
+            message
+        })
+})
+
 export default shareRoutes
