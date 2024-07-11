@@ -1,4 +1,5 @@
 export interface CashAdvance {
+    id: string,
     amount: number,
     date: string,
     remarks: string

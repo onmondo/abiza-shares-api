@@ -168,6 +168,59 @@ export class SharesService {
             }
         }
     }
+
+    async GetShareHoldersCashAdvances(req: Request) {
+        try {
+            const shareHolderId = req.params.id;
+            const data = await this.repository.findAllShareHoldersCashAdvances(shareHolderId)
+            return {
+                statusCode: 200,
+                message: "success",
+                data
+            }
+            
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: err
+            }
+        }
+    }
+
+    async GetShareHoldersCashAdvanceById(req: Request) {
+        try {
+            const cashAdvanceId = req.params.id;
+            const data = await this.repository.findShareHoldersCashAdvanceById(cashAdvanceId)
+            return {
+                statusCode: 200,
+                message: "success",
+                data
+            }
+            
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: err
+            }
+        }
+    }      
     
+    async DeleteShareHoldersCashAdvanceById(req: Request) {
+        try {
+            const cashAdvanceId = req.params.id;
+            const data = await this.repository.deleteShareHoldersCashAdvanceById(cashAdvanceId)
+            return {
+                statusCode: 200,
+                message: "success",
+                data
+            }
+            
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: err
+            }
+        }
+    }
 }
 

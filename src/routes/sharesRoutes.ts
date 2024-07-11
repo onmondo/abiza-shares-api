@@ -61,4 +61,34 @@ shareRoutes.post("/holders/:id/advance", async (req: Request, res: Response, nex
         })
 })
 
+shareRoutes.get("/holders/:id/advance", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message, data } = await service.GetShareHoldersCashAdvances(req)
+    res
+        .status(statusCode)
+        .json({
+            message,
+            data
+        })
+})
+
+shareRoutes.get("/holders/advance/:id", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message, data } = await service.GetShareHoldersCashAdvanceById(req)
+    res
+        .status(statusCode)
+        .json({
+            message,
+            data
+        })
+})
+
+shareRoutes.delete("/holders/advance/:id", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message, data } = await service.DeleteShareHoldersCashAdvanceById(req)
+    res
+        .status(statusCode)
+        .json({
+            message,
+            data
+        })
+})
+
 export default shareRoutes
