@@ -1,13 +1,9 @@
+import { CashAdvancePayment } from "./CashAdvancePayment"
+
 export interface CashAdvance {
     id: string,
     amount: number,
     date: string,
     remarks: string
-    payments?: [
-        {
-            paidAt: string,
-            amount: number,
-            remarks?: string
-        }
-    ]
+    payments?: CashAdvancePayment[]
 }

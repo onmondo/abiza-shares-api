@@ -8,6 +8,9 @@ import { QueryByIDEntry } from "../dto/QueryByIDEntry";
 import { UpdateShareHolderEntry } from "../dto/UpdateShareHolder";
 import { ShareHolder } from "../models/ShareHolder";
 import { ShareHolderCashAdvanceEntry } from "../dto/ShareHolderCashAdvanceEntry";
+import { CashAdvancePaymentEntry } from "../dto/CashAdvancePaymentEntry";
+import { ObjectId } from "mongodb";
+import Big from "big.js";
 
 @autoInjectable()
 export class SharesService {
@@ -39,7 +42,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }
@@ -57,7 +60,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
 
@@ -78,7 +81,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
 
@@ -111,7 +114,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }
@@ -135,9 +138,10 @@ export class SharesService {
                 message: "success"
             }
         } catch (err) {
+
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }
@@ -164,7 +168,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }
@@ -182,7 +186,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }
@@ -200,7 +204,7 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }      
@@ -218,9 +222,104 @@ export class SharesService {
         } catch (err) {
             return {
                 statusCode: 500,
-                message: err
+                message: (err as Error).message
             }
         }
     }
+
+    async PayCashAdvance(req: Request) {
+        try {
+            const cashAdvanceId = req.params.id;
+            const payment = plainToClass(CashAdvancePaymentEntry, {...req.body, id: cashAdvanceId})
+            const error = await AppValidationError(payment)
+    
+            if (error) {
+                return {
+                    statusCode: 400,
+                    message: error
+                }
+            }
+
+            const { amount, payments } = await this.repository.findShareHoldersCashAdvanceById(cashAdvanceId)
+            let originalAmount = amount
+
+            if (payments && payments.length > 0) {
+                originalAmount = payments[payments.length - 1].remaining
+            }
+
+            await this.repository.createPayment(cashAdvanceId, {
+                ...payment,
+                originalAmount,
+                remaining: Big(originalAmount).minus(Big(payment.amountPaid)).toNumber()
+            })
+    
+            return {
+                statusCode: 200,
+                message: "success"
+            }
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: (err as Error).message
+            }
+        }
+    }
+
+    async GetPaymentFromCashAdvances(req: Request) {
+        try {
+            const cashAdvanceId = req.params.id;
+            const data = await this.repository.findAllPaymentsFromCashAdvance(cashAdvanceId)
+            return {
+                statusCode: 200,
+                message: "success",
+                data
+            }
+            
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: (err as Error).message
+            }
+        }
+    }
+
+    async CancelPaymentFromCashAdvance(req: Request) {
+        try {
+            const cashAdvanceId = req.params.id;
+            const payment = plainToClass(CashAdvancePaymentEntry, {...req.body, id: cashAdvanceId})
+            const error = await AppValidationError(payment)
+
+            if (error) {
+                return {
+                    statusCode: 400,
+                    message: error
+                }
+            }
+
+            const { amount, payments } = await this.repository.findShareHoldersCashAdvanceById(cashAdvanceId)
+            let originalAmount = amount
+
+            if (payments && payments.length > 0) {
+                originalAmount = payments[payments.length - 1].remaining
+            }
+
+            await this.repository.createPayment(cashAdvanceId, {
+                ...payment,
+                originalAmount,
+                remaining: Big(originalAmount).plus(Big(payment.amountPaid)).toNumber()
+            })
+
+            return {
+                statusCode: 200,
+                message: "success",
+            }
+            
+        } catch (err) {
+            return {
+                statusCode: 500,
+                message: (err as Error).message
+            }
+        }
+    }    
 }
 

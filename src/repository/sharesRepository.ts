@@ -2,6 +2,8 @@ import { ObjectId } from "mongodb";
 import { ShareHolder } from "../models/ShareHolder";
 import { CashAdvance } from "../models/CashAdvance";
 import DBClient from "../util/DBClient";
+import { CashAdvancePayment } from "../models/CashAdvancePayment";
+import { CashAdvancePaymentEntry } from "../dto/CashAdvancePaymentEntry";
 
 export class SharesRepository {
     async createShareHolder(shareHolder: ShareHolder) {
@@ -66,6 +68,21 @@ export class SharesRepository {
         const dbClient = DBClient.getInstance()
         const dbConnection = await dbClient.getConnection()
         
+        const result: unknown = await dbConnection
+            .db("abiza-mongodb")
+            .collection("shareholders")
+            .findOne({ "_id": new ObjectId(id) })
+
+        const shareHolder = result as ShareHolder
+        if (shareHolder.cashAdvances && shareHolder.cashAdvances.length > 0) {
+            throw Error("Shareholder has existing cash advance and therefore you cannot delete the shareholder.")
+        }
+
+        await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .deleteMany({ id })
+
         dbConnection
             .db("abiza-mongodb")
             .collection("shareholders")
@@ -137,9 +154,9 @@ export class SharesRepository {
         
         // need to upgrade this into a transaction type db operation
         const cashAdvance: unknown = await dbConnection
-        .db("abiza-mongodb")
-        .collection("cashadvances")
-        .findOne({"_id": new ObjectId(cashAdvanceId)})
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .findOne({"_id": new ObjectId(cashAdvanceId)})
         
         const { id, payments } = cashAdvance as CashAdvance
         
@@ -165,6 +182,68 @@ export class SharesRepository {
         await dbConnection
             .db("abiza-mongodb")
             .collection("cashadvances")
-            .deleteOne({ "_id": new ObjectId(cashAdvanceId) })
+            .updateOne(
+                { "_id": new ObjectId(cashAdvanceId) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date(),
+                        archived: true
+                    }
+                }
+            )
     }
+
+    async createPayment(id: string, payment: CashAdvancePayment) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+
+        const result = await dbConnection
+            .db("abiza-mongodb")
+            .collection<CashAdvance>("cashadvances")
+            .updateOne(
+                { "_id": new ObjectId(id) }, 
+                { 
+                    $set: {
+                        updatedAt: new Date()
+                    },
+                    $push: {
+                        payments: payment
+                    }
+                }
+            )
+    }
+
+    async findAllPaymentsFromCashAdvance(id: string) {
+        const dbClient = DBClient.getInstance()
+        const dbConnection = await dbClient.getConnection()
+
+        const result: unknown = await dbConnection
+            .db("abiza-mongodb")
+            .collection("cashadvances")
+            .findOne({"_id": new ObjectId(id)})
+        
+        const cashAdvance = result as CashAdvance
+        
+        return cashAdvance.payments
+    }
+
+    // async deletePaymentsFromCashAdvance(id: string, payment: CashAdvancePayment) {
+    //     const dbClient = DBClient.getInstance()
+    //     const dbConnection = await dbClient.getConnection()
+
+    //     const result = await dbConnection
+    //         .db("abiza-mongodb")
+    //         .collection<CashAdvance>("cashadvances")
+    //         .updateOne(
+    //             { "_id": new ObjectId(id) }, 
+    //             { 
+    //                 $set: {
+    //                     updatedAt: new Date()
+    //                 },
+    //                 $push: {
+    //                     payments: payment
+    //                 }
+    //             }
+    //         )
+    // }
 }

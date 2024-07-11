@@ -91,4 +91,33 @@ shareRoutes.delete("/holders/advance/:id", async (req: Request, res: Response, n
         })
 })
 
+shareRoutes.post("/holders/advance/:id/payments", async (req: Request, res: Response, next: NextFunction) => {
+    console.log(req)
+    const { statusCode, message } = await service.PayCashAdvance(req)
+    res
+        .status(statusCode)
+        .json({
+            message
+        })
+})
+
+shareRoutes.get("/holders/advance/:id/payments", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message, data } = await service.GetPaymentFromCashAdvances(req)
+    res
+        .status(statusCode)
+        .json({
+            message,
+            data
+        })
+})
+
+shareRoutes.delete("/holders/advance/:id/payments", async (req: Request, res: Response, next: NextFunction) => {
+    const { statusCode, message } = await service.CancelPaymentFromCashAdvance(req)
+    res
+        .status(statusCode)
+        .json({
+            message,
+        })
+})
+
 export default shareRoutes
